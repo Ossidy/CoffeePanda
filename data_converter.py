@@ -2,6 +2,7 @@
 '''preprocess midi data into training data'''
 
 from music21 import *
+from itertools import groupby
 
 class DataParser():
 	'''parse midi file into trainable data type
@@ -42,8 +43,63 @@ class DataParser():
 			pt.removeByClass(instrument.Instrument)
 		return parts
 
-	def mergeParts(self):
-		pass
+
+
+	def getMeasuresList(self, part):
+		'''get list of measures or a part of track
+
+		Parameters:
+			part: the track of part to be chopped
+		Return:
+			measuresList: a list of all meausres
+		'''
+		measures = []
+		if self.time_signature.ratioString == '4/4':
+			offsetTuples = [(int(n.offset/4), n) for n in part]
+		elif self.time_signature.ratioString == '3/4':
+			offsetTuples = [(int(n.offset/3), n) for n in part]
+		elif self.time_signature.ratioString == '6/8':
+			offsetTuples = [(int(n.offset/6), n) for n in part]
+		else:
+			raise('{} is currently not implemented, please check'.format(self.time_signature.ratioString))
+
+		for key, group in groupby(offsetTuples, lambda x: x[0]):
+			measures.append([n[1] for n in group])
+
+		return measures
+
+	def mergeTwoParts(self, part1, part2):
+		'''given two parts, merge them to one part
+
+		Parameters:
+			part1, part2: music21 Part class
+		Return:
+			mergedPart: music21 Part class
+		'''
+		for n in part1:
+			part2.insert(n.offset, n)
+		mergedPart = part2
+		
+		return mergedPart
+
+	def mergeAllParts(self):
+		'''merge all parts
+
+		Parameters:
+		Return:
+			mergedPart: music21 Part class
+		'''
+		mergedPart = stream.Part()
+		if self.num_track == 1:
+			return self.mergeTwoParts(mergedPart, self.getParts()[0])
+
+		allParts = self.getParts()
+		for i in range(self.num_track):
+			mergedPart = self.mergeTwoParts(mergedPart, allParts[i])
+
+		return mergedPart
+
+
 
 
 
@@ -52,4 +108,11 @@ class DataParser():
 if __name__ == "__main__":
 	file_path = './data/01.mid'
 	data = DataParser(file_path) 
-	print(data.getParts()[0].show('text'))
+	# print(data.getStream().show('text'))
+	# print(data.getParts()[0].show('text'))
+	parts = data.getParts()
+	measures = data.getMeasuresList(parts[0])
+	# print(measures)
+	mergedpart = data.mergeAllParts()
+	mergedpart.show('text')
+	# print(mergedpart[0].duration.quarterLength, mergedpart[1].duration.quarterLength)
