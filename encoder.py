@@ -11,6 +11,7 @@ class Encoder():
 	   ('C#5', [0,3,5], [1, 1, 0.25], [0, 0, 0])
 	'''
 	def __init__(self, unit):
+
 		self.unit = unit
 		self.unit_without_rest = self.__stripOutRests()
 		# self.unit_without_zero_durations = self.__stripOutZeroDurations()
@@ -18,6 +19,7 @@ class Encoder():
 		self.__begin, self.__end = self.__beginEndPoint()
 
 	def __stripOutRests(self):
+		''' strip out the rests from current input unit'''
 		unit_without_rest = []
 		for nt in self.unit:
 			if not isinstance(nt, note.Rest):
@@ -35,7 +37,11 @@ class Encoder():
 		return begin, end
 
 	def naiveChordEncode(self):
-		'''encode the unit into chords with respect to shortest-duration note'''
+		''' encode the unit into chords with respect to shortest-duration note
+			Parameter:
+			Returns:
+				encoded_unit: list, the list containing encoded tuple
+		'''
 		encoded_unit = []
 
 		# cluster notes with same begin time
@@ -48,12 +54,16 @@ class Encoder():
 		# print(cluster)
 
 		cluster_notes = []
+		if self.unit_with_chord_flatten == []:
+			return []
+
 		for ch in cluster:
 			# for each note we split them into pitch and duration
 			notes = [self.unit_with_chord_flatten[i] for i in ch]
 			# print(notes)
 			cluster_notes.append(notes)
-		self.__prettyPrint(cluster_notes)
+
+		# self.__prettyPrint(cluster_notes)
 
 		# for calculating relative offset of each unit
 		begin_offset = self.unit[0].offset
@@ -87,10 +97,14 @@ class Encoder():
 			duration_set = [duration_set[i] for i in pitch_order]
 
 			encoded_unit.append((root_pitch, pitch_set, duration_set, offset_set))
+		self.__stripOutZeroDurations(encoded_unit)
+		print(encoded_unit)
 
 		return encoded_unit
 
 	def __flattenChords(self):
+		''' given chords, change it to several notes with same durations'''
+
 		unit_with_chord_flatten = []
 		for nt in self.unit_without_rest:
 			tmp_notes = []
@@ -110,14 +124,14 @@ class Encoder():
 				unit_with_chord_flatten.append(nt)
 		return unit_with_chord_flatten
 
-	def __stripOutZeroDurations(self):
-		unit_without_zero_durations = []
-		for nt in self.unit_without_rest:
-			if nt.duration.quarterLength != 0.0:
-				# notes with wrong coding, neglect them
-				unit_without_zero_durations.append(nt)
-		return unit_without_zero_durations
-
+	def __stripOutZeroDurations(self, encoded_list):
+		''' for the encoded tuple, delete the ones with zero durations
+			zero duration arise from the 1/32 (or below) notes. It can 
+			not be recognize currently
+		'''
+		for i, codes in enumerate(encoded_list):
+			if any(codes[2]) == 0:
+				del encoded_list[i]
 
 	def __prettyPrint(self, some_list):
 		for item in some_list:
@@ -141,10 +155,13 @@ if __name__ == "__main__":
 	patternsegment = dc.PatternSegmentor(mergedpart, mergedpart_measures, meter.TimeSignature())
 
 	test = patternsegment.freeSegmentation(4)
-	test = patternsegment.segmentByBeat()
+	test = patternsegment.segmentByBeat(0.125)
 	# print(test)
 	# test.prettyPrintSegment()
-	encoder = Encoder(test[136])
+	encoder = Encoder(test[8])
 	# print(encoder.unit_without_zero_durations)
 	# print(encoder.unit_without_rest)
 	encoder.naiveChordEncode()
+	for unit in test:
+		encoder = Encoder(unit)
+		encoder.naiveChordEncode()
