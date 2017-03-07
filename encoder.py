@@ -13,6 +13,8 @@ class Encoder():
 	def __init__(self, unit):
 		self.unit = unit
 		self.unit_without_rest = self.__stripOutRests()
+		# self.unit_without_zero_durations = self.__stripOutZeroDurations()
+		self.unit_with_chord_flatten = self.__flattenChords()
 		self.__begin, self.__end = self.__beginEndPoint()
 
 	def __stripOutRests(self):
@@ -26,10 +28,10 @@ class Encoder():
 		'''compute the begin and end point of each note as a list'''
 		begin = []
 		end = []
-		for nt in self.unit_without_rest:
+		for nt in self.unit_with_chord_flatten:
 			begin.append(nt.offset)
 			end.append(nt.offset + nt.duration.quarterLength)
-		print(begin, end)
+		# print(begin, end)
 		return begin, end
 
 	def naiveChordEncode(self):
@@ -43,20 +45,18 @@ class Encoder():
 				cluster[-1].append(i)
 			else:
 				cluster.append([i])
-		print(cluster)
+		# print(cluster)
 
 		cluster_notes = []
 		for ch in cluster:
-			print(ch)
 			# for each note we split them into pitch and duration
-			notes = [self.unit_without_rest[i] for i in ch]
+			notes = [self.unit_with_chord_flatten[i] for i in ch]
 			# print(notes)
 			cluster_notes.append(notes)
 		self.__prettyPrint(cluster_notes)
 
 		# for calculating relative offset of each unit
 		begin_offset = self.unit[0].offset
-
 
 		for i, nts in enumerate(cluster_notes):
 			# compare pitches, find root and pitch interval set
@@ -66,8 +66,9 @@ class Encoder():
 			for i in range(len(nts)):
 				if len(nts) > 1:
 					for j in range(i + 1, len(nts)):
-						# print(interval.notesToChromatic(nts[i], nts[j]))
-						root_note = interval.getAbsoluteLowerNote(nts[i], nts[j])
+						lower_note = interval.getAbsoluteLowerNote(nts[i], nts[j])
+						root_note = interval.getAbsoluteLowerNote(root_note, lower_note)
+						# print(root_note)
 
 			# find interval set and relative offset set
 			pitch_set = []
@@ -78,26 +79,45 @@ class Encoder():
 				pitch_set.append(interval.notesToChromatic(root_note, nt).directed)
 				offset_set.append(nt.offset - begin_offset)
 				duration_set.append(nt.duration.quarterLength)
-				print(nt.duration.quarterLength)
 
 			# reorder the list with root-interval sequence
 			pitch_order = sorted(range(len(pitch_set)), key=lambda k: pitch_set[k])
 			pitch_set = [pitch_set[i] for i in pitch_order]
 			offset_set = [offset_set[i] for i in pitch_order]
 			duration_set = [duration_set[i] for i in pitch_order]
-			# print(pitch_set)
-			# print(offset_set)
-			# print(duration_set)
+
 			encoded_unit.append((root_pitch, pitch_set, duration_set, offset_set))
-		# for i in range(len(cluster_notes)):
-		# 	encoded_unit.append((root_note.nameWithOctave, pitch_set, duration_set, offset_set))
-		print(encoded_unit)
+
+		return encoded_unit
 
 	def __flattenChords(self):
-		pass
+		unit_with_chord_flatten = []
+		for nt in self.unit_without_rest:
+			tmp_notes = []
+			if isinstance(nt, chord.Chord):
+				offset = nt.offset
+				duration = nt.duration.quarterLength
+				pitches = nt.pitches
+				for i in pitches:
+					# pitch -> str(pitch) is the full octave name
+					tmp_nt = note.Note(str(i))
+					tmp_nt.offset = offset
+					tmp_nt.duration.quarterLength = duration
+					tmp_notes.append(tmp_nt)
+				unit_with_chord_flatten.extend(tmp_notes)
+
+			else:
+				unit_with_chord_flatten.append(nt)
+		return unit_with_chord_flatten
 
 	def __stripOutZeroDurations(self):
-		pass
+		unit_without_zero_durations = []
+		for nt in self.unit_without_rest:
+			if nt.duration.quarterLength != 0.0:
+				# notes with wrong coding, neglect them
+				unit_without_zero_durations.append(nt)
+		return unit_without_zero_durations
+
 
 	def __prettyPrint(self, some_list):
 		for item in some_list:
@@ -107,30 +127,8 @@ class Encoder():
 
 		
 
-
-class Decoder():
-	'''decode the string representation of the notes'''
-	def __init__():
-		pass
-	def getNotePitch():
-		pass
-	def getNoteDuration():
-		pass
-	def toMusic21():
-		pass
-
-class ChordEncoder():
-	'''encoder of chords'''
-	def __init__():
-		pass
-
-class ChordDecoder():
-	'''decoder of chords'''
-	def __init__():
-		pass
-
 if __name__ == "__main__":
-	file_path = './data/02.mid'
+	file_path = './data/01.mid'
 	parser = dc.DataParser(file_path) 
 	parts = parser.getParts()
 	measures = parser.getMeasuresList(parts[0])
@@ -146,6 +144,7 @@ if __name__ == "__main__":
 	test = patternsegment.segmentByBeat()
 	# print(test)
 	# test.prettyPrintSegment()
-	encoder = Encoder(test[10])
+	encoder = Encoder(test[136])
+	# print(encoder.unit_without_zero_durations)
 	# print(encoder.unit_without_rest)
 	encoder.naiveChordEncode()

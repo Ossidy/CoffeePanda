@@ -14,16 +14,13 @@ class DataParser():
 		tempo: float, tempo of the music
 		key_signature: if not specified, automatically find it
 	'''
-	def __init__(self, midi_file = None,
+	def __init__(self, midi_file,
 				 time_signature = None,
 				 num_track = None,
 				 tempo_signature = None,
 				 key_signature = None):
 		# get data
-		if midi_file == None:
-			self.data = None
-		else:
-			self.data = converter.parse(midi_file)		
+		self.data = converter.parse(midi_file)		
 		# get time signature
 		self.time_signature = self.data[0].getElementsByClass(meter.TimeSignature)[0]
 		# get tempo
@@ -188,8 +185,10 @@ class PatternSegmentor():
 				time += 1.0 * beat 
 				segmentedList.append(tmp_pattern)
 				tmp_pattern = [note]
+
+		# append the last note above
+		segmentedList.append(tmp_pattern)
 		# self.__prettyPrintSegment(segmentedList)
-		# print(len(segmentedList))
 		return segmentedList
 
 	def segmentByMeasure(self):
@@ -246,7 +245,9 @@ class PatternSegmentor():
 		'''print units for testing'''
 		for element in some_list:
 			print element
-
+	def prettyPrintSegment(self, some_list):
+		for element in some_list:
+			print element
 
 
 
@@ -265,11 +266,13 @@ if __name__ == "__main__":
 	# print(mergedpart_measures)
 	# print(mergedpart[0].duration.quarterLength, mergedpart[1].duration.quarterLength)
 	patternsegment = PatternSegmentor(mergedpart, mergedpart_measures, meter.TimeSignature())
-	print(meter.TimeSignature)
+	# print(meter.TimeSignature)
 	# print(patternsegment.measuresList)
 	patternsegment.segmentByBeat()
-	patternsegment.segmentOverMeasures(1)
-	patternsegment.segmentInMeasures()
+	# patternsegment.segmentOverMeasures(1)
+	# patternsegment.segmentInMeasures()
+	# print(len(patternsegment.segmentByBeat()))
+
 	patternsegment.freeSegmentation(4)
 
 	# s = mergedpart
