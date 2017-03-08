@@ -3,6 +3,7 @@
 
 from music21 import *
 import data_converter as dc 
+from utilities import *
 
 class Encoder():
 	'''encoder of a note/chord information into set representation
@@ -155,13 +156,14 @@ if __name__ == "__main__":
 	patternsegment = dc.PatternSegmentor(mergedpart, mergedpart_measures, meter.TimeSignature())
 
 	test = patternsegment.freeSegmentation(4)
-	test = patternsegment.segmentByBeat(0.125)
+	test = patternsegment.segmentByBeat(1)
 	# print(test)
 	# test.prettyPrintSegment()
-	encoder = Encoder(test[8])
+	encoder = Encoder(test[136])
 	# print(encoder.unit_without_zero_durations)
 	# print(encoder.unit_without_rest)
-	encoder.naiveChordEncode()
-	for unit in test:
-		encoder = Encoder(unit)
-		encoder.naiveChordEncode()
+	a = encoder.naiveChordEncode()
+	print(pitchInMidi(a))
+	# for unit in test:
+	# 	encoder = Encoder(unit)
+	# 	encoder.naiveChordEncode()
