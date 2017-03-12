@@ -5,7 +5,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.layers import LSTM
 
-def lstm_model(max_len, note_len, dr):
+def lstm_model(max_len, note_len, dr=0.3):
 	""" simple 2 stacked LSTM model
 		@param:
 			max_len: number of notes in one sample
